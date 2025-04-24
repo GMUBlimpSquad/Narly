@@ -38,6 +38,20 @@ def read_controller(shared_inputs):
                     shared_inputs["switch_auto"] = False
                     switched = False
 
+            elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TL:  # Top Left Bumper (L1)
+                if event.value == 1 and not switched:
+                    shared_inputs["switch_target"] = 1
+                    switched = True
+                elif event.value == 1 and switched:
+                    shared_inputs["switch_target"] = 2
+                    switched = False
+
+            elif event.code == ecodes.BTN_NORTH:  # set current_stop to 10
+                shared_inputs["set_cg_10"] = bool(event.value)
+                if event.value == 1:
+                    shared_inputs["set_cg_10"] = True
+            
+
 
     finally:
         device.close()

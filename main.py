@@ -17,6 +17,8 @@ def main():
         "cg_backward": False,
         "switch_auto": False,
         "stop": False,
+        "set_cg_10": False,
+        "switch_target": 1
     })
 
     controller_process = Process(target=read_controller, args=(shared_inputs,))
@@ -55,10 +57,43 @@ def main():
     exit_thread.start()
 
     try:
+
         print("[Main] Starting up, press 'q' then Enter to exit.")
-        caught_ball = autonomy.ball_search_loop(shared_inputs)
-        if caught_ball:
-            scored = autonomy.goalSearch(shared_inputs)
+
+        while True:
+            time.sleep(0.01)
+            if shared_inputs["stop"]:
+                break
+
+            
+            if shared_inputs.get("set_cg_10"):
+                autonomy.set_cg_ten()
+
+            
+            if shared_inputs.get("switch_auto"):
+                    
+                if shared_inputs.get("switch_target") == 1:
+                    caught_ball = autonomy.ball_search_loop()
+                    if caught_ball:
+                        scored = autonomy.goalSearch()
+                        if scored:
+                            break
+                    else:
+                        continue
+
+
+                if shared_inputs.get("switch_target") == 2:
+                    scored = autonomy.goalSearch()
+                    if scored:
+                        break
+                    else:
+                        continue
+
+            else:
+                autonomy.manual_control(shared_inputs)
+                
+        
+                
 
     except KeyboardInterrupt:
         shutdown_handler()
@@ -73,3 +108,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

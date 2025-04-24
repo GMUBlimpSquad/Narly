@@ -83,6 +83,9 @@ class Detection:
         #self.client_socket.sendall(struct.pack(">L", size) + data)
         # Set range for green color and
         # define mask
+
+
+        #hlsFrame = cv2.GaussianBlur(frame, (5,5), 0)
         hlsFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # TODO this maks needs to be audjustable, and the update should be seen
@@ -92,19 +95,36 @@ class Detection:
         # Create an array of different color thresholds then based on that 
         # detect different object
         
-        ball_lower = np.array([28, 95, 83], np.uint8)
-        ball_upper = np.array([83, 255, 228], np.uint8)
+        purple_ball_lower = np.array([170, 100, 106], np.uint8)
+        purple_ball_upper = np.array([190, 255, 255], np.uint8)
 
-        ball_mask = cv2.inRange(hlsFrame, ball_lower, ball_upper)
+        green_ball_lower = np.array([28, 95, 83], np.uint8)
+        green_ball_upper = np.array([83, 255, 228], np.uint8)
+
+        purple_ball_mask = cv2.inRange(hlsFrame, purple_ball_lower, purple_ball_upper)
+        green_ball_mask = cv2.inRange(hlsFrame, green_ball_lower, green_ball_upper)
      
-        goal_lower = np.array([114, 100, 100], np.uint8)
-        goal_upper = np.array([115, 255, 255], np.uint8)
+        ball_mask = cv2.bitwise_or(purple_ball_mask, green_ball_mask)
+
+        yellow_goal_lower = np.array([80, 100, 100], np.uint8)
+        yellow_goal_upper = np.array([100, 255, 255], np.uint8)
 
 
-        goal_mask = cv2.inRange(hlsFrame, goal_lower, goal_upper)
+        orange_goal_lower = np.array([114, 100, 100], np.uint8)
+        orange_goal_upper = np.array([115, 255, 255], np.uint8)
+
+        yellow_goal_mask = cv2.inRange(hlsFrame, yellow_goal_lower, yellow_goal_upper)
+        orange_goal_mask = cv2.inRange(hlsFrame, orange_goal_lower, orange_goal_upper)
+
+        
         kernel = np.ones((7, 7), np.uint8)
-        goal_mask = cv2.morphologyEx(goal_mask, cv2.MORPH_CLOSE, kernel)
-        goal_mask = cv2.dilate(goal_mask, kernel, iterations=1)
+
+        yellow_goal_mask = cv2.morphologyEx(yellow_goal_mask, cv2.MORPH_CLOSE, kernel)
+        yellow_goal_mask = cv2.dilate(yellow_goal_mask, kernel, iterations=1)
+
+        orange_goal_mask = cv2.morphologyEx(orange_goal_mask, cv2.MORPH_CLOSE, kernel)
+        orange_goal_mask = cv2.dilate(orange_goal_mask, kernel, iterations=1)
+    
 
 
         if target == 1:
@@ -112,7 +132,8 @@ class Detection:
                                                cv2.RETR_TREE,
                                                cv2.CHAIN_APPROX_SIMPLE)
         elif target == 2:
-            contours, _ = cv2.findContours(goal_mask,
+            
+            contours, _ = cv2.findContours(yellow_goal_mask,
                                                cv2.RETR_TREE,
                                                cv2.CHAIN_APPROX_SIMPLE)
 
@@ -148,13 +169,19 @@ class Detection:
                # send data via socket
                 self.client_socket.sendall(struct.pack(">L", size) + data)
 
-
-            if w*h < 200 or w*h > 1800:
-                return None
+            if target == 1:
+                if w*h < 200 or w >= 2*h or h >= 2*w:
+                    return None
             # print(x,y,w,h)
             
 
-            return ((center_point[0] - 120) / 120, (120 - center_point[1]) / 120, w*h)
+                return ((center_point[0] - 120) / 120, (120 - center_point[1]) / 120, w*h)
+            
+            if target == 2:
+                if w*h < 100:
+                    return None
+                
+                return ((center_point[0] - 120) / 120, (120 - center_point[1]) / 120, w*h)
 
 
         frame = cv2.resize(frame, (240, 240),
@@ -177,13 +204,16 @@ if __name__ == "__main__":
 
     ofod = Detection("192.168.0.200", 5001,True,True) #TRUE FOR STREAMING and TRUE FOR TESTING
     while True:
-        bounding = ofod.detect(target = 2, testing=True)
+        bounding = ofod.detect(target = 1, testing=True)
         if bounding is not None:
+            print(bounding)
             pass
-            #print(bounding)
+            
 
 
 
     # On board blob detection -> Which returns bounding box based on
     # the specified color that you want to detect
+
+
 

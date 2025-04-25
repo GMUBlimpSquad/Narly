@@ -1,0 +1,32 @@
+# File: barometer.py
+import time
+import board
+import adafruit_bmp3xx
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("barometer")
+
+SEA_LEVEL_PRESSURE = 1013.25  # hPa
+
+try:
+    i2c = board.I2C()
+    bmp = adafruit_bmp3xx.BMP3XX_I2C(i2c)
+    logger.info("Barometer initialized")
+except Exception as e:
+    logger.exception(f"Barometer init failed: {e}")
+    bmp = None
+
+def set_ground():
+    if bmp is None:
+        raise RuntimeError("BMP sensor not initialized")
+    logger.info("Calibrating ground pressure (5s delay)...")
+    time.sleep(5)
+    return bmp.pressure
+
+def get_height(ground_pressure):
+    if bmp is None:
+        raise RuntimeError("BMP sensor not initialized")
+    pressure = bmp.pressure
+    # Barometric formula
+    return 44330 * (1.0 - (pressure / ground_pressure) ** (1/5.255))

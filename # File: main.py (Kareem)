@@ -1,0 +1,61 @@
+# File: main.py
+import time, signal, sys, logging
+from multiprocessing import Process, Manager
+from r_control import read_controller
+from autonomy import robot
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main")
+
+def main():
+    mgr = Manager()
+    inputs = mgr.dict({
+        "dpad_up":False,"dpad_down":False,
+        "dpad_left":False,"dpad_right":False,
+        "cg_forward":False,"cg_backward":False,
+        "switch_auto":False,"switch_target":1,
+        "set_cg_10":False,"stop":False
+    })
+
+    ctrl = Process(target=read_controller, args=(inputs,))
+    ctrl.daemon = True
+    ctrl.start()
+
+    def cleanup(signum=None, frame=None):
+        inputs["stop"]=True
+        ctrl.join(2)
+        logger.info("Shutting down")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
+
+    logger.info("Press 'q'+Enter to quit")
+    try:
+        while True:
+            time.sleep(0.02)
+            if inputs["stop"]:
+                break
+            if inputs["set_cg_10"]:
+                robot.set_cg_ten(); inputs["set_cg_10"]=False
+
+            if inputs["switch_auto"]:
+                if inputs["switch_target"] == 1:
+                    robot.ball_search_loop()
+                else:
+                    robot.goal_search_loop()
+            else:
+                robot.manual_control(inputs)
+
+            # Clear one-shot flags
+            if inputs["switch_auto"]:
+                pass  # keep until toggled off
+            else:
+                inputs["switch_target"]=1
+    except Exception:
+        logger.exception("Fatal error in main loop")
+    finally:
+        cleanup()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,56 @@
+# File: Camera.py
+import cv2, numpy as np, logging, traceback
+from picamera2 import Picamera2
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("Camera")
+
+class Detection:
+    def __init__(self, stream=False, testing=False):
+        self.stream = stream
+        self.testing = testing
+        try:
+            self.picam2 = Picamera2()
+            config = self.picam2.create_still_configuration(
+                main={'format':'BGR888','size':(240,240)}
+            )
+            self.picam2.configure(config)
+            self.picam2.start()
+            logger.info("Camera started")
+        except Exception:
+            logger.exception("Failed to initialize camera")
+            raise
+
+    def _get_frame(self):
+        try:
+            return self.picam2.capture_array()
+        except Exception:
+            logger.error("Frame capture failed:\n" + traceback.format_exc())
+            return None
+
+    def detect(self, target):
+        frame = self._get_frame()
+        if frame is None:
+            return None
+
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        masks = {
+            1: cv2.inRange(hsv, (170,100,106), (190,255,255)) | cv2.inRange(hsv,(28,95,83),(83,255,228)),
+            2: cv2.inRange(hsv, (80,100,100),(100,255,255)) | cv2.inRange(hsv,(114,100,100),(115,255,255))
+        }[target]
+        # Morphological cleanup
+        kernel = np.ones((5,5),np.uint8)
+        masks = cv2.morphologyEx(masks, cv2.MORPH_CLOSE, kernel)
+        cnts, _ = cv2.findContours(masks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            return None
+
+        x,y,w,h = cv2.boundingRect(max(cnts, key=cv2.contourArea))
+        area = w*h
+        if (target == 1 and area < 200) or (target == 2 and area < 100):
+            return None
+
+        # Normalize to [-1,1]
+        nx = (x + w/2 - 120)/120
+        ny = (120 - (y + h/2))/120
+        return (nx, ny, area)

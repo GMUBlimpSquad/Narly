@@ -498,38 +498,26 @@ def ball_search_loop():
             kit.continuous_servo[6].throttle = -0.05
 
         
+        current_time = millis()
+        if current_time - last_move_timeR >= 80:  # Check if it's time to move
+            last_move_timeR = current_time  # Update last move time
+            posR = oscillate_wing(direction= 1, freq= 0.6)
+            kit.servo[0].angle = posR 
+            kit.servo[1].angle = 180 - posR
         
         if smooth_err_y < -0.1:
             #print("FLAPPING LEFT WING")
-            current_time = millis()
-            if current_time - last_move_timeL >= 80:  # Check if it's time to move
-                last_move_timeL = current_time  # Update last move time
-                posL = oscillate_wing(direction=1,freq=0.6)
-                
-                kit.servo[1].angle = posL
-                kit.servo[0].angle = 180 - posL
-                kit.servo[8].angle = 15
+        
+            kit.servo[8].angle = 15
                 
                         
         elif smooth_err_y > 0.1:
-            #print("FLAPPING RIGHT WING")
-            current_time = millis()
-            if current_time - last_move_timeR >= 80:  # Check if it's time to move
-                last_move_timeR = current_time  # Update last move time
-                posR = oscillate_wing(direction= 1, freq= 0.6)
-
-                kit.servo[0].angle = posR 
-                kit.servo[1].angle = 180 - posR
-                kit.servo[8].angle = 165   
+                
+            kit.servo[8].angle = 165   
+        
         else:
-            current_time = millis()
-            if current_time - last_move_timeR >= 80:  # Check if it's time to move
-                last_move_timeR = current_time  # Update last move time
-                posR = oscillate_wing(direction= 1, freq= 0.6)
-
-                kit.servo[0].angle = posR 
-                kit.servo[1].angle = 180 - posR
-                kit.servo[8].angle = 80   
+            
+            kit.servo[8].angle = 80   
 
         return False
                         
@@ -708,30 +696,25 @@ def goalSearch():
 
 
         if not goal_on_target:
+
+            current_time = millis()
+            if current_time - last_move_timeL >= 80:  # Check if it's time to move
+                last_move_timeL = current_time  # Update last move time
+                posL = oscillate_wing(direction=1,freq=0.5)
+                
+                kit.servo[1].angle = posL
+                kit.servo[0].angle = 180-posL
             
             # Send values to servos
             if smooth_err_y_g < -0.1:
                 #print("FLAPPING LEFT WING")
-                current_time = millis()
-                if current_time - last_move_timeL >= 80:  # Check if it's time to move
-                    last_move_timeL = current_time  # Update last move time
-                    posL = oscillate_wing(direction=1,freq=0.5)
-                    
-                    kit.servo[1].angle = posL
-                    kit.servo[0].angle = 180-posL
-                    kit.servo[8].angle = 0
+                
+                kit.servo[8].angle = 5
                     
                             
             if smooth_err_y_g > 0.1:
-                #print("FLAPPING RIGHT WING")
-                current_time = millis()
-                if current_time - last_move_timeR >= 80:  # Check if it's time to move
-                    last_move_timeR = current_time  # Update last move time
-                    posR = oscillate_wing(direction= 1, freq= 0.5)
-
-                    kit.servo[0].angle = posR 
-                    kit.servo[1].angle = 180-posR
-                    kit.servo[8].angle = 165   
+               
+                kit.servo[8].angle = 165   
             
             
 

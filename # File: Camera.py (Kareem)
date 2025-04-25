@@ -1,4 +1,4 @@
-# File: Camera.py
+# File: camera.py
 import cv2, numpy as np, logging, traceback
 from picamera2 import Picamera2
 

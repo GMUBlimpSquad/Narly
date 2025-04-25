@@ -44,9 +44,9 @@ def main():
             if inputs["switch_auto"]:
                 if inputs["switch_target"] == 1:
                     robot.ball_search_loop()
-                elif:
+                else:
                     robot.goal_search_loop()
-            elif:
+            else:
                 robot.manual_control(inputs)
     
             # Clear one-shot flags

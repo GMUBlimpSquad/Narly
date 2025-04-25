@@ -1,5 +1,5 @@
 # File: autonomy.py
-import time, logging
+import time, logging, math
 from camera import Detection
 from adafruit_servokit import ServoKit
 from barometer import set_ground, get_height

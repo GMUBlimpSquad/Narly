@@ -1,5 +1,6 @@
 # File: main.py
 import time, signal, sys, logging
+import autonomy
 from multiprocessing import Process, Manager
 from r_control import read_controller
 from autonomy import robot

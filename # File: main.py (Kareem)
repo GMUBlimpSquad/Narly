@@ -36,9 +36,11 @@ def main():
             time.sleep(0.02)
             if inputs["stop"]:
                 break
+    
             if inputs["set_cg_10"]:
-                robot.set_cg_ten(); inputs["set_cg_10"]=False
-
+                robot.set_cg_ten()
+                inputs["set_cg_10"] = False
+    
             if inputs["switch_auto"]:
                 if inputs["switch_target"] == 1:
                     robot.ball_search_loop()
@@ -46,16 +48,16 @@ def main():
                     robot.goal_search_loop()
             else:
                 robot.manual_control(inputs)
-
+    
             # Clear one-shot flags
-            if inputs["switch_auto"]:
-                pass  # keep until toggled off
-            else:
-                inputs["switch_target"]=1
+            if not inputs["switch_auto"]:
+                inputs["switch_target"] = 1
+    
     except Exception:
         logger.exception("Fatal error in main loop")
     finally:
         cleanup()
+
 
 if __name__ == "__main__":
     main()

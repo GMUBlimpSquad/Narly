@@ -1,0 +1,62 @@
+# File: alt_recvr.py
+import socket, threading, logging, cv2, pickle, struct
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("alt_recvr")
+
+HOST, PORT = '0.0.0.0', 5001
+BUFFER = 4096
+
+shared_frame = None
+frame_lock = threading.Lock()
+
+def receive(conn):
+    global shared_frame
+    conn.settimeout(5.0)
+    data = b''
+    size_len = struct.calcsize(">L")
+    try:
+        while True:
+            while len(data) < size_len:
+                packet = conn.recv(BUFFER)
+                if not packet: return
+                data += packet
+            msg_size = struct.unpack(">L", data[:size_len])[0]
+            data = data[size_len:]
+            while len(data) < msg_size:
+                data += conn.recv(BUFFER)
+            frame_data, data = data[:msg_size], data[msg_size:]
+            frame = pickle.loads(frame_data)
+            with frame_lock:
+                shared_frame = frame
+            conn.sendall(b"OK")
+    except Exception:
+        logger.exception("Receiver error")
+    finally:
+        conn.close()
+
+def main():
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    s.bind((HOST,PORT)); s.listen(1)
+    logger.info(f"Listening on {HOST}:{PORT}")
+    conn, addr = s.accept()
+    logger.info(f"Connected by {addr}")
+    threading.Thread(target=receive, args=(conn,), daemon=True).start()
+
+    try:
+        while True:
+            with frame_lock:
+                frame = None if shared_frame is None else shared_frame.copy()
+            if frame is not None:
+                cv2.imshow("Stream", frame)
+            if cv2.waitKey(1)&0xFF==ord('q'):
+                break
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+        s.close()
+
+if __name__=="__main__":
+    main()

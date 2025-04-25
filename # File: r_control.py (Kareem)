@@ -1,0 +1,62 @@
+# File: r_control.py
+import logging
+from evdev import InputDevice, categorize, ecodes, util
+import time
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("r_control")
+
+def read_controller(shared_inputs, device_path='/dev/input/event2'):
+    """Read gamepad inputs into shared_inputs dict, with error handling."""
+    try:
+        device = InputDevice(device_path)
+        logger.info(f"Controller opened on {device_path}")
+    except Exception as e:
+        logger.exception(f"Failed to open controller: {e}")
+        return
+
+    switched_auto = False
+    switched_target = False
+
+    try:
+        for event in device.read_loop():
+            # Clean exit
+            if shared_inputs.get("stop"):
+                break
+
+            if event.type == ecodes.EV_ABS:
+                if event.code == ecodes.ABS_HAT0Y:
+                    shared_inputs["dpad_up"] = (event.value == -1)
+                    shared_inputs["dpad_down"] = (event.value == 1)
+                elif event.code == ecodes.ABS_HAT0X:
+                    shared_inputs["dpad_left"] = (event.value == -1)
+                    shared_inputs["dpad_right"] = (event.value == 1)
+
+            elif event.type == ecodes.EV_KEY:
+                # CG rail
+                if event.code == ecodes.BTN_SOUTH:
+                    shared_inputs["cg_forward"] = bool(event.value)
+                    if event.value:
+                        shared_inputs["cg_backward"] = False
+                elif event.code == ecodes.BTN_EAST:
+                    shared_inputs["cg_backward"] = bool(event.value)
+                    if event.value:
+                        shared_inputs["cg_forward"] = False
+                # Toggle auto/manual
+                elif event.code == ecodes.BTN_TR and event.value == 1:
+                    switched_auto = not switched_auto
+                    shared_inputs["switch_auto"] = switched_auto
+                # Toggle target (1=ball, 2=goal)
+                elif event.code == ecodes.BTN_TL and event.value == 1:
+                    switched_target = not switched_target
+                    shared_inputs["switch_target"] = 2 if switched_target else 1
+                # Reset CG to 10
+                elif event.code == ecodes.BTN_NORTH and event.value == 1:
+                    shared_inputs["set_cg_10"] = True
+            # throttle loop frequency
+            time.sleep(0.005)
+    except Exception as e:
+        logger.exception(f"Controller read error: {e}")
+    finally:
+        device.close()
+        logger.info("Controller closed")
